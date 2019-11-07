@@ -4,13 +4,10 @@ from matplotlib import cm
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import sys
+import sys, os
 import time as ntime
-# sys.path.append('/Users/matt/Work/lbm/')
-# import lbm as lbm_np
 
 # v = tf.constant([ [ 1, 1], [ 1, 0], [ 1, -1], [ 0, 1], [ 0, 0], [ 0, -1], [-1, 1], [-1, 0], [-1,-1] ], dtype=tf.float64)
-# this needs to be reworked
 v_np = np.array([ [ 1, 1], [ 1, 0], [ 1, -1], [ 0, 1], [ 0, 0], [ 0, -1], [-1, 1], [-1, 0], [-1, -1] ])
 v_x = tf.constant( [1, 1, 1, 0, 0, 0, -1, -1, -1], dtype=tf.float64)
 v_y = tf.constant( [1, 0, -1, 1, 0, -1, 1, 0, -1], dtype=tf.float64)
@@ -206,7 +203,6 @@ print(tfilter.shape)
 # fin = initialise(fin)
 # fin = np.pad(fin, ((0,0),(1,1),(1,1),(0,0)),"wrap") 
 
-
 def density_np(fin):
     rho_np = np.zeros((nx,ny))
     for i in range(9):
@@ -265,8 +261,13 @@ def do_loop():
     # do streaming
     fin.assign(streaming(fout, tfilter))
 
-# with tf.control_dependencies([streaming_op]):
-# add_op = tf.assign(time, tf.add(time,1))
+dirName = "output"
+try:
+    # create target directory
+    os.mkdir(dirName)
+    print("Directory " , dirName ,  " Created ") 
+except FileExistsError:
+    print("Directory " , dirName ,  " already exists")
 
 start_total = ntime.time()
 start = ntime.time()
@@ -278,18 +279,14 @@ def run_lbm():
     start = ntime.time()
 
     for t in range(maxiters):
-        # print(sess.run(add_op))
         do_loop()
         print(t)
-        # tf.cond(t % frequency == 0,do_nothing(), plot_np(t, fin_out))
-        # if t % frequency == 0:
-        #     # plot_np(t, fin_out)
-        #     pass
+        if t % frequency == 0:
+            plot_np(t, fin)
 
     print("total time while loop ", ntime.time() - start)
-    # print(sess.run(equilibrium(rho,u)))
-    # print(sess.run(fin))
 
+    # profiling 
     # writer = tf.summary.FileWriter("logdir/lbm", sess.graph)
     # writer.close()
 run_lbm()
