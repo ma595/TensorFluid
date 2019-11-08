@@ -32,7 +32,7 @@ print(nx, ny)
 r = ny / 9
 
 frequency = 1000
-maxiters = 1500
+maxiters = 20000
 
 nu = uLB*r / Re
 omega = 1. / (3 * nu + 0.5 )
@@ -213,14 +213,15 @@ def velocity_np(fin, rho):
     u_np = np.zeros((2,nx,ny))
     for i in range(9):
         # eins-sum
-        u_np[0] += v_np[i, 0] * fin[i, :, :]
-        u_np[1] += v_np[i, 1] * fin[i, :, :]
+        u_np[0] += v_np[i, 0] * fin[i]
+        u_np[1] += v_np[i, 1] * fin[i]
     u_np /= rho
     return u_np
 
 def plot_np(time, fin):
-    rho_np = density_np(fin)
-    u_np = velocity_np(fin, rho_np)
+    fin_np = fin.numpy()
+    rho_np = density_np(fin_np)
+    u_np = velocity_np(fin_np, rho_np)
     if time % frequency == 0:
         plt.clf()
         plt.imshow(np.sqrt(u_np[0]**2 + u_np[1]**2).transpose(), cmap=cm.Reds)
@@ -233,10 +234,28 @@ def plot(time, fin):
     u = velocity(fin, rho)
     print("do plotting")
     plt.clf()
-    u = u.eval()
     plt.imshow(np.sqrt(u[0]**2 + u[1]**2).transpose(), cmap=cm.Reds)
     plt.colorbar()
     plt.savefig("output/vel.{0:03d}.png".format(time//frequency))
+
+
+def output_to_file(time, fin):
+    fin_np = fin.numpy()
+    rho_np = density_np(fin_np)
+    u_np = velocity_np(fin_np, rho_np)
+    u_mag = np.sqrt(u_np[0]**2 + u_np[1]**2)
+    # tf.print(u_mag, output_stream="file:///tmp/foo.out")
+
+    print(u_mag.shape)
+    file_out = open("output/all.out", "a")
+    for i in range(0,nx-1):
+        file_out.write("\n")
+        for j in range(0,ny-1):
+            string_out = "%d\t%d\t%f\t%f\n" % (i, j, u_mag[i,j], rho_np[i,j])
+            file_out.write(string_out)
+    file_out.write("\n\n\n") 
+    file_out.close()
+    
 
 vel = np.fromfunction(inivel, (2,nx,ny))
 vel = tf.Variable(vel)
@@ -272,21 +291,31 @@ except FileExistsError:
 start_total = ntime.time()
 start = ntime.time()
 
-@tf.function
+# @tf.function
 def run_lbm():    
+    # lose all output!
+    file_out = open("output/all.out", "w")
+    file_out.close()
     fin.assign(equilibrium(rho,u))
     feq.assign(equilibrium(rho,u))
-    start = ntime.time()
 
     for t in range(maxiters):
         do_loop()
         print(t)
         if t % frequency == 0:
+            print("output")
             plot_np(t, fin)
+            output_to_file(t, fin)
+        #     file_out = "file:///tmp/foo_%d.out" % t
+            # tf.print(density(fin), output_stream=file_out)
+            # print(rho.numpy())
+            # output_to_file(t, fin)
 
-    print("total time while loop ", ntime.time() - start)
 
     # profiling 
     # writer = tf.summary.FileWriter("logdir/lbm", sess.graph)
     # writer.close()
+
 run_lbm()
+print("total time while loop ", ntime.time() - start)
+print("done")
