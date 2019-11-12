@@ -32,7 +32,7 @@ print(nx, ny)
 r = ny / 9
 
 frequency = 1000
-maxiters = 20000
+maxiters = 1001
 
 nu = uLB*r / Re
 omega = 1. / (3 * nu + 0.5 )
@@ -238,7 +238,7 @@ def plot(time, fin):
     plt.colorbar()
     plt.savefig("output/vel.{0:03d}.png".format(time//frequency))
 
-
+# output to all file 
 def output_to_file(time, fin):
     fin_np = fin.numpy()
     rho_np = density_np(fin_np)
@@ -248,14 +248,40 @@ def output_to_file(time, fin):
 
     print(u_mag.shape)
     file_out = open("output/all.out", "a")
-    for i in range(0,nx-1):
+    for i in range(0,nx):
         file_out.write("\n")
-        for j in range(0,ny-1):
+        for j in range(0,ny):
             string_out = "%d\t%d\t%f\t%f\n" % (i, j, u_mag[i,j], rho_np[i,j])
             file_out.write(string_out)
     file_out.write("\n\n\n") 
     file_out.close()
     
+# create random directory 
+# output separate files in matrix format for each variable
+# rho_t=f1, rho_t=f2...
+def output_to_file_matrix(time, fin):
+    fin_np = fin.numpy()
+    rho_np = density_np(fin_np)
+    u_np = velocity_np(fin_np, rho_np)
+    u_mag = np.sqrt(u_np[0]**2 + u_np[1]**2)
+
+    # create unique directory name python
+    file_out = open("output/u_mag_%d.out" % time)
+    string_out = "\n"
+    for i in range(0,nx):
+        for j in range(0,ny):
+            if j != ny - 1: 
+                string_out += "%f\t" % u_mag[i,j]
+            else:
+                string_out += "%f\n" % u_mag[i,j]
+
+    file_out.write(string_out)
+        
+    
+    
+def output_to_hdf(time, fin):
+    pass 
+
 
 vel = np.fromfunction(inivel, (2,nx,ny))
 vel = tf.Variable(vel)
@@ -305,7 +331,7 @@ def run_lbm():
         if t % frequency == 0:
             print("output")
             plot_np(t, fin)
-            output_to_file(t, fin)
+            output_to_file_matrix(t, fin)
         #     file_out = "file:///tmp/foo_%d.out" % t
             # tf.print(density(fin), output_stream=file_out)
             # print(rho.numpy())
