@@ -16,8 +16,8 @@ int v[9][2] = { {1, 1}, {1, 0}, {1, -1}, {0, 1}, {0, 0}, {0, -1}, {-1, 1}, {-1, 
 
 double t[9] = { 1./36, 1./9, 1./36, 1./9, 4./9, 1./9, 1./36, 1./9, 1./36 };
 
-int nx = 420;
-int ny = 180;
+int nx = 1680;
+int ny = 720;
 
 int cx = nx / 4;
 int cy = ny / 2;
@@ -29,8 +29,8 @@ int Ly = ny - 1;
 double uLB = 0.04;
 double Re = 120;
 
-int maxiter = 100000;
-int frequency = 1000;
+int frequency = 1001;
+int maxiter = 1001;
 double nu = uLB * r / Re; 
 double omega = 1. / (3. * nu + 0.5);
 
@@ -44,6 +44,7 @@ bool circle(int x, int y){
 
 // works 
 void generate_mask(MatrixXb& mask){
+  #pragma omp parallel for 
   for (int i = 0; i < nx; i++){
     for (int j = 0; j < ny; j++){
       mask(i, j) = circle(i, j);   
@@ -65,6 +66,7 @@ void initialise(Eigen::MatrixXd& rho, std::vector<Eigen::MatrixXd>& u){
   vel[1].setZero();
   u[0].setZero();
   u[1].setZero();
+  #pragma omp parallel for 
   for (int i = 0; i < nx; ++i){
     for (int j = 0; j < ny; ++j){
       vel[0](i,j) = inivel(0, i, j);
@@ -76,6 +78,7 @@ void initialise(Eigen::MatrixXd& rho, std::vector<Eigen::MatrixXd>& u){
 }
 
 void streaming(std::vector<Eigen::MatrixXd>& fin, std::vector<Eigen::MatrixXd>& fout){
+  #pragma omp parallel for 
   for (int i = 0; i < nx; ++i){
     for (int j = 0; j < ny; ++j){
       for (int c = 0; c < 9; ++c){
@@ -100,6 +103,7 @@ void streaming(std::vector<Eigen::MatrixXd>& fin, std::vector<Eigen::MatrixXd>& 
 
 void density(std::vector<Eigen::MatrixXd>& fin, Eigen::MatrixXd& rho){
   rho.setZero();
+  #pragma omp parallel for 
   for (int i = 0; i < 9; i++){
     rho += fin[i];
   }
@@ -108,6 +112,7 @@ void density(std::vector<Eigen::MatrixXd>& fin, Eigen::MatrixXd& rho){
 void velocity(std::vector<Eigen::MatrixXd>& fin, Eigen::MatrixXd& rho, std::vector<Eigen::MatrixXd>& u){
   u[0].setZero();
   u[1].setZero();
+  #pragma omp parallel for 
   for (int i = 0; i < 9; ++i){
     u[0] += v[i][0] * fin[i];
     u[1] += v[i][1] * fin[i];
@@ -121,6 +126,7 @@ void velocity(std::vector<Eigen::MatrixXd>& fin, Eigen::MatrixXd& rho, std::vect
 void equilibrium(std::vector<Eigen::MatrixXd>& eq, Eigen::MatrixXd& rho, std::vector<Eigen::MatrixXd>& u){
   Eigen::MatrixXd usqr = 3/2. * (u[0].cwiseProduct(u[0]) + u[1].cwiseProduct(u[1]));
   Eigen::MatrixXd ones = Eigen::MatrixXd::Constant(nx, ny, 1.); 
+  #pragma omp parallel for 
   for (int i = 0; i < 9; ++i){
       MatrixXd vu = 3 * (v[i][0] * u[0] + v[i][1] * u[1]);
       eq[i] =  t[i] * rho.cwiseProduct(ones + vu + 0.5 * vu.cwiseProduct(vu) - usqr);
@@ -225,10 +231,12 @@ int main(){
     apply_bcs(eq, fin, u, rho);
 
     // collision
+    #pragma omp for
     for (int c = 0; c < 9; ++c)
       fout[c] = fin[c] - omega*(fin[c] - eq[c]);
 
     // do bounceback only on solid nodes  
+    #pragma omp parallel for 
     for (int c = 0; c < 9; ++c){
       for (int i = 0; i < nx; ++i){
         for (int j = 0; j < ny; ++j){

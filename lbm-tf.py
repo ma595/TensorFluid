@@ -1,4 +1,5 @@
 import numpy as np
+import pickle
 import tensorflow as tf
 from matplotlib import cm
 import matplotlib
@@ -6,6 +7,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import sys, os
 import time as ntime
+import h5py 
 
 # v = tf.constant([ [ 1, 1], [ 1, 0], [ 1, -1], [ 0, 1], [ 0, 0], [ 0, -1], [-1, 1], [-1, 0], [-1,-1] ], dtype=tf.float64)
 v_np = np.array([ [ 1, 1], [ 1, 0], [ 1, -1], [ 0, 1], [ 0, 0], [ 0, -1], [-1, 1], [-1, 0], [-1, -1] ])
@@ -13,6 +15,9 @@ v_x = tf.constant( [1, 1, 1, 0, 0, 0, -1, -1, -1], dtype=tf.float64)
 v_y = tf.constant( [1, 0, -1, 1, 0, -1, 1, 0, -1], dtype=tf.float64)
 
 t = tf.constant( [1./36, 1./9, 1./36, 1./9, 4./9, 1./9, 1./36, 1./9, 1./36], dtype=tf.float64)
+
+# translated into tf rolls
+# axis = 
 
 uLB = 0.04
 Re = 120
@@ -218,15 +223,15 @@ def velocity_np(fin, rho):
     u_np /= rho
     return u_np
 
-def plot_np(time, fin):
-    fin_np = fin.numpy()
-    rho_np = density_np(fin_np)
-    u_np = velocity_np(fin_np, rho_np)
-    if time % frequency == 0:
-        plt.clf()
-        plt.imshow(np.sqrt(u_np[0]**2 + u_np[1]**2).transpose(), cmap=cm.Reds)
-        plt.colorbar()
-        plt.savefig("output/vel.{0:03d}.png".format(time//frequency))
+# def plot_np(time, fin):
+#     fin_np = fin.numpy()
+#     rho_np = density_np(fin_np)
+#     u_np = velocity_np(fin_np, rho_np)
+#     if time % frequency == 0:
+#         plt.clf()
+#         plt.imshow(np.sqrt(u_np[0]**2 + u_np[1]**2).transpose(), cmap=cm.Reds)
+#         plt.colorbar()
+#         plt.savefig("output/vel.{0:03d}.png".format(time//frequency))
 
 
 def plot(time, fin):
@@ -266,7 +271,7 @@ def output_to_file_matrix(time, fin):
     u_mag = np.sqrt(u_np[0]**2 + u_np[1]**2)
 
     # create unique directory name python
-    file_out = open("output/u_mag_%d.out" % time)
+    file_out = open("output/u_mag_%d.out" % time, "w")
     string_out = "\n"
     for i in range(0,nx):
         for j in range(0,ny):
@@ -276,11 +281,52 @@ def output_to_file_matrix(time, fin):
                 string_out += "%f\n" % u_mag[i,j]
 
     file_out.write(string_out)
-        
+    file_out.close()
     
+
+def output_to_file_binarymatrix(time, fin):
+    fin_np = fin.numpy()
+    rho_np = density_np(fin_np)
+    u_np = velocity_np(fin_np, rho_np)
+    u_mag = np.sqrt(u_np[0]**2 + u_np[1]**2)
+
+    # create unique directory name python
+    file_out = open("output/u_mag_%d.bin" % time, "wb")
+
+    # loop over columns
+
+    string_out = str(nx)
+
+    for j in range(ny):
+        string_out += "\t" + str(j+1)
+   
+    string_out += "\n"
+
+    for i in range(1,nx+1):
+        string_out += str(i) + "\t"
+        for j in range(1,ny+1):
+            if j != ny: 
+                string_out += "%f\t" % u_mag[i-1,j-1]
+            else:
+                print(j)
+                string_out += "%f\n" % u_mag[i-1,j-1]
+
+  
+
+    pickle.dump(string_out, file_out)
+    # file_out.write(string_out.encode())
+    file_out.close()
+
     
 def output_to_hdf(time, fin):
-    pass 
+    fin_np = fin.numpy()
+    rho_np = density_np(fin_np)
+    u_np = velocity_np(fin_np, rho_np)
+    u_mag = np.sqrt(u_np[0]**2 + u_np[1]**2)
+
+    hf = h5py.File('output/data.h5', 'w')
+    hf.create_dataset('velocity_mag', data=u_mag)
+    hf.close()
 
 
 vel = np.fromfunction(inivel, (2,nx,ny))
@@ -330,8 +376,9 @@ def run_lbm():
         print(t)
         if t % frequency == 0:
             print("output")
-            plot_np(t, fin)
-            output_to_file_matrix(t, fin)
+            # plot_np(t, fin)
+            # output_to_file_binarymatrix(t, fin)
+            # output_to_hdf(t, fin)
         #     file_out = "file:///tmp/foo_%d.out" % t
             # tf.print(density(fin), output_stream=file_out)
             # print(rho.numpy())
