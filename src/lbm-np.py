@@ -190,10 +190,10 @@ for time in range(maxiter):
     # print("np ", fin[0,nx-1,:])
 
     # print("feq", feq)
-    # np.set_printoptions(threshold=sys.maxsize)
-    # f = open("feq.out", "w")
-    # f.write(np.array2string(feq))
-    # f.close()
+    np.set_printoptions(threshold=sys.maxsize)
+    f = open("output/feq.out", "w")
+    f.write(np.array2string(feq))
+    f.close()
 
 # print(fin)
     #     print(lbm_np.fin[0,0,:])
