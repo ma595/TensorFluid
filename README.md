@@ -1,5 +1,5 @@
 # TensorFluid
-Implementation of lattice-boltzmann method in Tensorflow 
+Implementation of lattice-boltzmann method in python, Tensorflow and C. 
 
 # Installation 
 Run env-install.sh
@@ -29,3 +29,5 @@ MPI implementation
 ## Numpy 
 
 range of different cores
+
+## References
