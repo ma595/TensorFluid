@@ -24,9 +24,12 @@ pip install .
 Timings for flow around bluff body, problem size 1680 x 720 
 
 ### Tensorflow
-(without output)
-single GPU: 24s
-single Threaded (CPU): 134s
+Excluding output
+
+| Device | Time | 
+| ------ | -----| 
+|Single GPU           | 24s |
+|single Threaded (CPU)| 134s |
 
 ### CPU C++ 
 Partially optimised OpenMP implementation:
